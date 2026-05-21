@@ -1,0 +1,19 @@
+{
+  "name": "KariGhar AI",
+  "short_name": "KariGhar",
+  "description": "AI Service Orchestrator Platform for Informal Economy",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#1c3144",
+  "theme_color": "#242423",
+  "categories": ["business", "utilities"],
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
