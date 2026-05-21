@@ -30,6 +30,7 @@ export default function App() {
   const [mobileTab, setMobileTab] = useState<'chat' | 'map' | 'ledger'>('chat');
   const [providerMobileTab, setProviderMobileTab] = useState<'jobs' | 'map' | 'earnings'>('jobs');
   const mapInstanceMobileRef = useRef<L.Map | null>(null);
+  const mapInstanceMobileProviderRef = useRef<L.Map | null>(null);
   
   // Settings & Configuration
   const [apiKey, setApiKey] = useState<string>(() => localStorage.getItem('gemini_api_key') || '');
@@ -220,8 +221,14 @@ export default function App() {
   useEffect(() => {
     const timer = setTimeout(() => {
       updateMapInstance('leaflet-map-canvas', mapInstanceRef);
-      updateMapInstance('leaflet-map-canvas-mobile', mapInstanceMobileRef);
-    }, 100);
+      updateMapInstance('leaflet-map-canvas-mobile-client', mapInstanceMobileRef);
+      updateMapInstance('leaflet-map-canvas-mobile-provider', mapInstanceMobileProviderRef);
+      
+      // Force Leaflet recalculation to prevent display grid load failures
+      if (mapInstanceRef.current) mapInstanceRef.current.invalidateSize();
+      if (mapInstanceMobileRef.current) mapInstanceMobileRef.current.invalidateSize();
+      if (mapInstanceMobileProviderRef.current) mapInstanceMobileProviderRef.current.invalidateSize();
+    }, 150);
 
     return () => {
       clearTimeout(timer);
@@ -238,6 +245,10 @@ export default function App() {
       if (mapInstanceMobileRef.current) {
         try { mapInstanceMobileRef.current.remove(); } catch (e) {}
         mapInstanceMobileRef.current = null;
+      }
+      if (mapInstanceMobileProviderRef.current) {
+        try { mapInstanceMobileProviderRef.current.remove(); } catch (e) {}
+        mapInstanceMobileProviderRef.current = null;
       }
     };
   }, []);
@@ -637,7 +648,7 @@ export default function App() {
             
             <div className="phone-screen">
               {activeApp === 'client' ? (
-                <>
+                <div style={{ display: 'flex', flexDirection: 'column', height: '100%', width: '100%', overflow: 'hidden' }}>
                   <div className="phone-header">
                     <div className="avatar-pulse">
                       <Shield size={16} style={{ color: 'white' }} />
@@ -648,9 +659,11 @@ export default function App() {
                     </div>
                   </div>
 
-                  {/* Tabs switch */}
-                  {mobileTab === 'chat' && (
-                    <>
+                  {/* Tabs Container */}
+                  <div style={{ flex: 1, display: 'flex', flexDirection: 'column', position: 'relative', minHeight: 0, overflow: 'hidden' }}>
+                    
+                    {/* Chat Tab Panel */}
+                    <div style={{ display: mobileTab === 'chat' ? 'flex' : 'none', flexDirection: 'column', height: '100%', width: '100%', flex: 1, minHeight: 0, overflow: 'hidden' }}>
                       {/* Chat Area */}
                       <div className="phone-chat-area">
                         {chatMessages.map((msg) => (
@@ -792,27 +805,27 @@ export default function App() {
                           <Send size={14} />
                         </button>
                       </form>
-                    </>
-                  )}
+                    </div>
 
-                  {mobileTab === 'map' && (
-                    <div className="mobile-map-tab-view" style={{ flex: 1, position: 'relative', display: 'flex', flexDirection: 'column' }}>
-                      <div id="leaflet-map-canvas-mobile" className="map-canvas-container" style={{ flex: 1, height: '100%' }}></div>
-                      <div style={{ padding: 10, background: 'var(--bg-panel-solid)', borderTop: '1px solid var(--border-light)', fontSize: '0.65rem' }}>
-                        <strong>📍 Live Dispatch Tracking</strong>
-                        <div style={{ color: 'var(--text-secondary)', marginTop: 2 }}>
-                          {state.bookings.length > 0 ? (
-                            `Tracking: ${state.bookings[0].providerName} is ${state.bookings[0].status.replace('_', ' ').toUpperCase()}`
-                          ) : (
-                            'No active booking path mapped. Request an artisan above!'
-                          )}
+                    {/* Map Tab Panel */}
+                    <div style={{ display: mobileTab === 'map' ? 'flex' : 'none', flexDirection: 'column', height: '100%', width: '100%', flex: 1, minHeight: 0 }}>
+                      <div className="mobile-map-tab-view" style={{ flex: 1, position: 'relative', display: 'flex', flexDirection: 'column', height: '100%', width: '100%' }}>
+                        <div id="leaflet-map-canvas-mobile-client" className="map-canvas-container" style={{ flex: 1, height: '100%', width: '100%' }}></div>
+                        <div style={{ padding: 10, background: 'var(--bg-panel-solid)', borderTop: '1px solid var(--border-light)', fontSize: '0.65rem' }}>
+                          <strong>📍 Live Dispatch Tracking</strong>
+                          <div style={{ color: 'var(--text-secondary)', marginTop: 2 }}>
+                            {state.bookings.length > 0 ? (
+                              `Tracking: ${state.bookings[0].providerName} is ${state.bookings[0].status.replace('_', ' ').toUpperCase()}`
+                            ) : (
+                              'No active booking path mapped. Request an artisan above!'
+                            )}
+                          </div>
                         </div>
                       </div>
                     </div>
-                  )}
 
-                  {mobileTab === 'ledger' && (
-                    <div className="mobile-ledger-tab-view" style={{ flex: 1, padding: 12, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 10 }}>
+                    {/* Ledger Tab Panel */}
+                    <div style={{ display: mobileTab === 'ledger' ? 'flex' : 'none', flexDirection: 'column', height: '100%', width: '100%', flex: 1, overflowY: 'auto', padding: 12 }}>
                       <div style={{ fontSize: '0.75rem', fontWeight: 'bold', borderBottom: '1px solid var(--border-light)', paddingBottom: 6 }}>🧾 Booking Ledger</div>
                       {state.bookings.length === 0 ? (
                         <div style={{ color: 'var(--text-muted)', fontSize: '0.7rem', textAlign: 'center', margin: '40px 0' }}>
@@ -820,7 +833,7 @@ export default function App() {
                         </div>
                       ) : (
                         state.bookings.map(b => (
-                          <div key={b.id} className="glass-card" style={{ padding: 10, display: 'flex', flexDirection: 'column', gap: 6 }}>
+                          <div key={b.id} className="glass-card" style={{ padding: 10, display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 8 }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.7rem', fontWeight: 'bold' }}>
                               <span>{b.categoryName}</span>
                               <span className={`booking-status-badge ${b.status}`} style={{ fontSize: '0.55rem' }}>{b.status.replace('_', ' ').toUpperCase()}</span>
@@ -840,7 +853,8 @@ export default function App() {
                         ))
                       )}
                     </div>
-                  )}
+
+                  </div>
 
                   {/* Client Tab Bar */}
                   <div className="phone-bottom-nav">
@@ -866,18 +880,21 @@ export default function App() {
                       🧾 Ledger
                     </button>
                   </div>
-                </>
+                </div>
               ) : (
                 /* PROVIDER VIEW SIMULATOR */
-                <>
-                  <div className="provider-dashboard-view" style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-                    <div className="provider-dash-header">
+                <div style={{ display: 'flex', flexDirection: 'column', height: '100%', width: '100%', overflow: 'hidden' }}>
+                  <div className="provider-dashboard-view" style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', padding: 0 }}>
+                    <div className="provider-dash-header" style={{ padding: 12 }}>
                       <h4>KariGhar Partner</h4>
                       <span className="provider-status-tag">Active</span>
                     </div>
 
-                    {providerMobileTab === 'jobs' && (
-                      <div style={{ flex: 1, overflowY: 'auto', padding: 12 }}>
+                    {/* Tabs Container */}
+                    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', position: 'relative', minHeight: 0, overflow: 'hidden' }}>
+                      
+                      {/* Jobs Tab Panel */}
+                      <div style={{ display: providerMobileTab === 'jobs' ? 'flex' : 'none', flexDirection: 'column', height: '100%', width: '100%', flex: 1, overflowY: 'auto', padding: 12 }}>
                         <div className="provider-stats-strip">
                           <div className="stat-strip-box">
                             <div className="stat-strip-val">
@@ -928,7 +945,7 @@ export default function App() {
                         )}
 
                         {assignedJobs.map((job) => (
-                          <div key={job.id} className="provider-job-card active-job">
+                          <div key={job.id} className="provider-job-card active-job" style={{ marginBottom: 8 }}>
                             <div className="job-card-header">
                               <span className="job-id">{job.id}</span>
                               <span className={`job-status-pill ${job.status}`}>
@@ -991,28 +1008,28 @@ export default function App() {
                           </div>
                         ))}
                       </div>
-                    )}
 
-                    {providerMobileTab === 'map' && (
-                      <div className="mobile-map-tab-view" style={{ flex: 1, position: 'relative', display: 'flex', flexDirection: 'column' }}>
-                        <div id="leaflet-map-canvas-mobile" className="map-canvas-container" style={{ flex: 1, height: '100%' }}></div>
-                        <div style={{ padding: 10, background: 'var(--bg-panel-solid)', borderTop: '1px solid var(--border-light)', fontSize: '0.65rem' }}>
-                          <strong>📍 Client Routing Navigation</strong>
-                          <div style={{ color: 'var(--text-secondary)', marginTop: 2 }}>
-                            {assignedJobs.length > 0 ? (
-                              `Active Route to Client ${assignedJobs[0].clientName} in Sector ${assignedJobs[0].locationSector}`
-                            ) : (
-                              'No assigned jobs to route currently.'
-                            )}
+                      {/* Map Tab Panel */}
+                      <div style={{ display: providerMobileTab === 'map' ? 'flex' : 'none', flexDirection: 'column', height: '100%', width: '100%', flex: 1, minHeight: 0 }}>
+                        <div className="mobile-map-tab-view" style={{ flex: 1, position: 'relative', display: 'flex', flexDirection: 'column', height: '100%', width: '100%' }}>
+                          <div id="leaflet-map-canvas-mobile-provider" className="map-canvas-container" style={{ flex: 1, height: '100%', width: '100%' }}></div>
+                          <div style={{ padding: 10, background: 'var(--bg-panel-solid)', borderTop: '1px solid var(--border-light)', fontSize: '0.65rem' }}>
+                            <strong>📍 Client Routing Navigation</strong>
+                            <div style={{ color: 'var(--text-secondary)', marginTop: 2 }}>
+                              {assignedJobs.length > 0 ? (
+                                `Active Route to Client ${assignedJobs[0].clientName} in Sector ${assignedJobs[0].locationSector}`
+                              ) : (
+                                'No assigned jobs to route currently.'
+                              )}
+                            </div>
                           </div>
                         </div>
                       </div>
-                    )}
 
-                    {providerMobileTab === 'earnings' && (
-                      <div className="mobile-earnings-tab-view" style={{ flex: 1, padding: 12, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 10 }}>
+                      {/* Wallet Tab Panel */}
+                      <div style={{ display: providerMobileTab === 'earnings' ? 'flex' : 'none', flexDirection: 'column', height: '100%', width: '100%', flex: 1, overflowY: 'auto', padding: 12 }}>
                         <div style={{ fontSize: '0.75rem', fontWeight: 'bold', borderBottom: '1px solid var(--border-light)', paddingBottom: 6 }}>💼 Earnings & Ledger</div>
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 12 }}>
                           <div className="stat-strip-box" style={{ padding: 10 }}>
                             <div className="stat-strip-val" style={{ fontSize: '1rem', color: 'var(--color-secondary)' }}>PKR 14,200</div>
                             <div className="stat-strip-label" style={{ fontSize: '0.55rem' }}>Wallet Balance</div>
@@ -1044,7 +1061,8 @@ export default function App() {
                           </div>
                         </div>
                       </div>
-                    )}
+
+                    </div>
 
                     {/* Provider Tab Bar */}
                     <div className="phone-bottom-nav">
@@ -1070,8 +1088,9 @@ export default function App() {
                         💼 Wallet
                       </button>
                     </div>
+
                   </div>
-                </>
+                </div>
               )}
             </div>
           </div>
