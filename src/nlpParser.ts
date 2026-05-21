@@ -113,9 +113,9 @@ export function parseIntentLocally(text: string): Intent {
     serviceCategory = 'beautician';
     serviceType = 'Beautician';
   } else {
-    // Default fallback or smart guess
-    serviceCategory = 'ac_technician';
-    serviceType = 'AC Technician';
+    // Unknown category: let orchestrator ask/clarify instead of randomly picking AC.
+    serviceCategory = null;
+    serviceType = 'Service';
   }
 
   // 2. Extract Location Sector
@@ -133,10 +133,11 @@ export function parseIntentLocally(text: string): Intent {
   }
 
   // Extra check for Urdu script sectors (if user typed in Urdu)
-  if (text.includes('جی ۱۳') || text.includes('جی-۱۳') || text.includes('جی تیرا')) location = 'G-13';
-  else if (text.includes('ایف ۱۱') || text.includes('ایف-۱۱')) location = 'F-11';
-  else if (text.includes('آئی ۸') || text.includes('آئی-۸')) location = 'I-8';
-  else if (text.includes('ڈی ایچ اے')) location = 'DHA';
+  if (text.includes('جی ۱۳') || text.includes('جی-۱۳') || text.includes('جی تیرا') || text.includes('جي 13')) location = 'G-13';
+  else if (text.includes('ایف ۱۱') || text.includes('ایف-۱۱') || text.includes('ايف 11')) location = 'F-11';
+  else if (text.includes('آئی ۸') || text.includes('آئی-۸') || text.includes('ای 8')) location = 'I-8';
+  else if (text.includes('ڈی ایچ اے') || text.includes('دي اچ اي')) location = 'DHA';
+  else if (text.includes('ایچ ۱۲') || text.includes('ايچ 12')) location = 'H-12';
 
   // 3. Extract Time
   let time = 'Tomorrow morning';
@@ -144,21 +145,29 @@ export function parseIntentLocally(text: string): Intent {
     lowercase.includes('kal subah') || 
     lowercase.includes('tomorrow morning') || 
     lowercase.includes('kal 10 baje') ||
-    text.includes('کل صبح')
+    lowercase.includes('morning') ||
+    text.includes('کل صبح') ||
+    text.includes('صبح')
   ) {
     time = 'Tomorrow morning (10:00 AM)';
   } else if (
     lowercase.includes('kal dophar') || 
     lowercase.includes('tomorrow afternoon') || 
-    lowercase.includes('kal 2 baje') ||
-    text.includes('کل دوپہر')
+    lowercase.includes('kal 2 baje') || 
+    lowercase.includes('dophar') ||
+    lowercase.includes('afternoon') ||
+    text.includes('کل دوپہر') ||
+    text.includes('دوپہر')
   ) {
     time = 'Tomorrow afternoon (02:00 PM)';
   } else if (
     lowercase.includes('kal sham') || 
     lowercase.includes('tomorrow evening') || 
-    lowercase.includes('kal 5 baje') ||
-    text.includes('کل شام')
+    lowercase.includes('kal 5 baje') || 
+    lowercase.includes('shaam') ||
+    lowercase.includes('evening') ||
+    text.includes('کل شام') ||
+    text.includes('شام')
   ) {
     time = 'Tomorrow evening (05:00 PM)';
   } else if (
@@ -172,7 +181,8 @@ export function parseIntentLocally(text: string): Intent {
     lowercase.includes('now') || 
     lowercase.includes('fauri') || 
     lowercase.includes('asap') || 
-    lowercase.includes('urgent') ||
+    lowercase.includes('urgent') || 
+    lowercase.includes('immediately') ||
     text.includes('ابھی') || 
     text.includes('فوری')
   ) {
@@ -184,7 +194,7 @@ export function parseIntentLocally(text: string): Intent {
     serviceCategory,
     location,
     time,
-    confidence: serviceCategory ? 0.9 : 0.4,
+    confidence: serviceCategory ? 0.9 : 0.2,
     language
   };
 }

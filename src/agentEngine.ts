@@ -2,21 +2,22 @@ import type { SystemState, AgentLog, AgentMessage, Booking, FollowupTask, Intent
 import { SECTOR_COORDINATES } from './mockData';
 import { parseIntentLocally, parseIntentWithGemini } from './nlpParser';
 
-const DELAY_MS = 1500; // Visual delay for demo pacing
+const DELAY_MS = 1200; // Visual delay for demo pacing (reduced for faster feel)
 
 function generateId(): string {
   return Math.random().toString(36).substring(2, 9);
 }
 
 function getTimestamp(): string {
-  return new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  return new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 }
 
 export async function executeOrchestration(
   userInput: string,
   state: SystemState,
   onStateUpdate: (updater: (prev: SystemState) => SystemState) => void,
-  apiKey?: string
+  apiKey?: string,
+  onAddChatMessage?: (message: { sender: 'agent'; text: string; time: string }) => void
 ): Promise<void> {
   
   // Helper to add log and trigger state update
@@ -55,6 +56,17 @@ export async function executeOrchestration(
       ...prev,
       messages: [...prev.messages, newMessage]
     }));
+  };
+
+  // Helper to add chat message (visible to user)
+  const addChatMsg = (text: string) => {
+    if (onAddChatMessage) {
+      onAddChatMessage({
+        sender: 'agent',
+        text,
+        time: getTimestamp()
+      });
+    }
   };
 
   try {
@@ -107,6 +119,9 @@ export async function executeOrchestration(
       'Coordinator',
       `Intent extraction complete. Category: ${intent.serviceCategory}, Location Sector: ${intent.location}, Time: ${intent.time}`
     );
+    
+    // Add conversational response to chat
+    addChatMsg(`✅ Mein ne samjh liya! Apko **${intent.serviceType}** ki zaroorat hai ${intent.location} sector mein **${intent.time}** par. 🎯\n\n🔍 Ab providers apke area mein search kar rahe hain...`);
     await new Promise((r) => setTimeout(r, DELAY_MS));
 
     if (!intent.serviceCategory) {
@@ -231,6 +246,10 @@ export async function executeOrchestration(
 
     const bestCandidate = rankedCandidates[0];
     
+    // Add conversational response about provider selection
+    addChatMsg(`🎯 **Perfect Match Found!**\n\n**${bestCandidate.provider.name}** apke liye best option hai! 👨‍🔧\n\n⭐ Rating: **${bestCandidate.provider.rating}/5.0**\n📍 Distance: **${bestCandidate.distance}km**\n💼 Experience: **${bestCandidate.provider.experienceYears} years**\n💰 Rate: **PKR ${bestCandidate.provider.priceRate}**\n\n🔄 Booking process shuru ho rahi hai...`);
+    await new Promise((r) => setTimeout(r, DELAY_MS));
+    
     addLog(
       'ranker_matcher',
       `RECOMMENDATION DECISION:\nSelected **${bestCandidate.provider.name}**\nReason: ${bestCandidate.provider.name} is ${bestCandidate.distance} km away from ${intent.location} with rating ${bestCandidate.provider.rating}★ and ${bestCandidate.provider.experienceYears} years of experience. Total evaluation score: ${bestCandidate.score}.`,
@@ -289,6 +308,9 @@ export async function executeOrchestration(
       'Thread #4: Execution Engine'
     );
     
+    // Add final booking confirmation to chat
+    addChatMsg(`✅ **BOOKING CONFIRMED!** 🎉\n\n📋 **Booking Details:**\n• **Booking ID:** ${newBooking.id}\n• **Artisan:** ${newBooking.providerName}\n• **Service:** ${newBooking.categoryName}\n• **Location:** ${newBooking.locationSector} Sector\n• **Time:** ${newBooking.timeSlot}\n• **Cost:** PKR ${newBooking.price}\n\n${newBooking.providerName} apke service ke liye ready hai! Message se contact mein ho jayein ge soon. 📲`);
+    
     addMessage(
       'Execution Agent',
       'Coordinator',
@@ -312,38 +334,49 @@ export async function executeOrchestration(
     // 15 seconds, 30 seconds, 45 seconds, 60 seconds
     const nowMs = Date.now();
     
+    // Virtual clock: we simulate “1 hour before” reminder (assignment requirement)
+    // using short delays for demo feel.
+    const VIRTUAL = {
+      REMINDER_BEFORE_MS: 20 * 1000, // demo for 1 hour before
+      ASSIGNED_AFTER_MS: 35 * 1000, // provider assigned
+      COMPLETED_AFTER_MS: 55 * 1000, // job done
+      FEEDBACK_AFTER_MS: 75 * 1000 // rating prompt
+    };
+
+    const timeLabel = `${newBooking.timeSlot}`;
+
     const virtualFollowups: FollowupTask[] = [
       {
         id: generateId(),
         bookingId: newBooking.id,
         type: 'reminder',
-        triggerTime: nowMs + 15 * 1000, // 15 seconds later
+        triggerTime: nowMs + VIRTUAL.REMINDER_BEFORE_MS,
         status: 'pending',
-        message: `📢 *Reminder:* Apka appointment kal subah "${newBooking.timeSlot}" baje *${newBooking.providerName}* ke sath scheduled hai. Hamare representative jald hi apse rabta karein ge.`
+        message: `⏰ *Reminder (1 hour before):* Apka service slot "${timeLabel}" hai. *${newBooking.providerName}* ke liye ham 1 hour pehle notification schedule kar chuke hain.`
       },
       {
         id: generateId(),
         bookingId: newBooking.id,
         type: 'status_assigned',
-        triggerTime: nowMs + 30 * 1000, // 30 seconds later
+        triggerTime: nowMs + VIRTUAL.ASSIGNED_AFTER_MS,
         status: 'pending',
-        message: `🚗 *Status Update:* *${newBooking.providerName}* apke sector ${newBooking.locationSector} ke liye nikal chuke hain. Booking ID: ${newBooking.id}.`
+        message: `🚗 *Status Update:* *${newBooking.providerName}* apke sector *${newBooking.locationSector}* ke liye nikal chuke hain. Booking ID: ${newBooking.id}.`
       },
       {
         id: generateId(),
         bookingId: newBooking.id,
         type: 'status_completed',
-        triggerTime: nowMs + 45 * 1000, // 45 seconds later
+        triggerTime: nowMs + VIRTUAL.COMPLETED_AFTER_MS,
         status: 'pending',
-        message: `✅ *Service Completed:* *${newBooking.providerName}* ne apka AC work mukammal kar diya hai. Total payble amount: PKR ${newBooking.price}.`
+        message: `✅ *Service Completed:* *${newBooking.providerName}* ne apka job complete kar diya hai. Total payble amount: PKR ${newBooking.price}.`
       },
       {
         id: generateId(),
         bookingId: newBooking.id,
         type: 'feedback_request',
-        triggerTime: nowMs + 60 * 1000, // 60 seconds later
+        triggerTime: nowMs + VIRTUAL.FEEDBACK_AFTER_MS,
         status: 'pending',
-        message: `⭐ *Feedback Request:* Apka experience kaisa raha? Plz rate *${newBooking.providerName}* by responding with 1 to 5 stars.`
+        message: `⭐ *Feedback Request:* Apka experience kaisa raha? *${newBooking.providerName}* ko 1–5 stars se rate karein.`
       }
     ];
 

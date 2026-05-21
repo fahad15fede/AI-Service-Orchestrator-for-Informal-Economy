@@ -274,9 +274,10 @@ body {
   height: 100%;
   width: 100%;
   min-height: 0;
-  overflow: hidden;
+  overflow: hidden; /* hard-isolate tab content */
   flex: 1;
 }
+
 
 .tab-panel.active {
   display: flex;

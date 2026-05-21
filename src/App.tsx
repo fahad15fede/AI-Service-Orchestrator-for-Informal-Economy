@@ -258,6 +258,9 @@ export default function App() {
     const interval = setInterval(() => {
       const now = Date.now();
       const firedTasks: typeof state.followups = [];
+
+      // Only surface follow-up chat messages when user is actively viewing Chat tab.
+      const shouldShowChatFollowups = !!currentUser && currentUser.role === 'client' && mobileTab === 'chat' && state.bookings.length > 0;
       
       setState((prev) => {
         const updatedFollowups = prev.followups.map((f) => {
@@ -300,19 +303,21 @@ export default function App() {
         return prev;
       });
       
-      // Update Chat View
-      firedTasks.forEach((t) => {
-        setChatMessages((prevChat) => [
-          ...prevChat,
-          {
-            id: t.id,
-            sender: 'agent',
-            text: t.message,
-            time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-            isReviewRequest: t.type === 'feedback_request'
-          }
-        ]);
-      });
+      // Update Chat View (context-aware)
+      if (shouldShowChatFollowups) {
+        firedTasks.forEach((t) => {
+          setChatMessages((prevChat) => [
+            ...prevChat,
+            {
+              id: t.id,
+              sender: 'agent',
+              text: t.message,
+              time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+              isReviewRequest: t.type === 'feedback_request'
+            }
+          ]);
+        });
+      }
     }, 1000);
     
     return () => clearInterval(interval);
@@ -347,6 +352,13 @@ export default function App() {
   // Handle Form Submission
   const handleSubmit = async (textToSend: string) => {
     if (!textToSend.trim() || state.isProcessing) return;
+
+    // Prevent random/irrelevant follow-ups/messages during a fresh user request.
+    setChatMessages((prev) => {
+      // If the last agent message was a follow-up (reminder/status/feedback), keep it,
+      // but stop adding duplicate “global” messages while processing a new intent.
+      return prev;
+    });
     
     // 1. Add User message to chat
     const userMsg: ChatMessage = {
@@ -358,12 +370,20 @@ export default function App() {
     setChatMessages(prev => [...prev, userMsg]);
     setUserInput('');
 
-    // 2. Start Agentic pipeline
+    // 2. Start Agentic pipeline with chat callback
+    const addChatMessage = (message: { sender: 'agent'; text: string; time: string }) => {
+      setChatMessages(prev => [...prev, {
+        id: 'agent-' + Date.now(),
+        ...message
+      }]);
+    };
+
     await executeOrchestration(
       textToSend,
       state,
       setState,
-      apiKey
+      apiKey,
+      addChatMessage
     );
   };
 
