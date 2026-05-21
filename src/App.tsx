@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { 
-  Settings, Send, Shield, Activity, X, Mic, Star
+  Settings, Send, Shield, X, Mic, Star, Sun, Moon, LogOut
 } from 'lucide-react';
 import type { SystemState, Booking, AgentLog } from './types';
 import { MOCK_PROVIDERS, SECTOR_COORDINATES } from './mockData';
@@ -516,711 +516,584 @@ export default function App() {
     ? state.bookings.filter(b => b.providerId === currentUser.providerId)
     : [];
 
-  return (
-    <div className="app-container">
-      {/* Session Auth Guard */}
-      {!currentUser && (
-        <Auth 
-          onLoginSuccess={setCurrentUser} 
-          providers={state.providers} 
-        />
-      )}
+  const handleLogout = () => {
+    setCurrentUser(null);
+    setChatMessages([
+      {
+        id: 'welcome-1',
+        sender: 'agent',
+        text: 'Assalam-o-Alaikum! 🇵🇰 Main apka KariGhar AI assistant hoon. Main G-13, F-11, I-8 ya Islamabad ke digar sectors me AC repairing, plumbing, electrician, beauty services, ya home tuition book kar sakta hoon.\n\nApko kis service ki zaroorat hai?',
+        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      }
+    ]);
+    setState(prev => ({ 
+      ...prev, 
+      bookings: [], 
+      logs: [], 
+      messages: [], 
+      followups: [], 
+      currentIntent: null, 
+      activeStep: -1 
+    }));
+  };
 
-      {/* Header */}
-      <header className="app-header glass-panel">
-        <div className="app-title-group">
-          <h1>KariGhar AI</h1>
-          <div className="app-subtitle">Service Orchestrator for Pakistan's Informal Economy</div>
-        </div>
-        
-        <div className="api-key-container">
-          {currentUser && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginRight: 12 }}>
-              <span className="provider-status-tag" style={{ background: 'rgba(99, 102, 241, 0.15)', color: '#a5b4fc' }}>
-                👤 {currentUser.name} ({currentUser.role.toUpperCase()})
-              </span>
-              <button 
-                className="scenario-chip" 
-                onClick={() => {
-                  setCurrentUser(null);
-                  setChatMessages([
-                    {
-                      id: 'welcome-1',
-                      sender: 'agent',
-                      text: 'Assalam-o-Alaikum! 🇵🇰 Main apka KariGhar AI assistant hoon. Main G-13, F-11, I-8 ya Islamabad ke digar sectors me AC repairing, plumbing, electrician, beauty services, ya home tuition book kar sakta hoon.\n\nApko kis service ki zaroorat hai?',
-                      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-                    }
-                  ]);
-                  setState(prev => ({ ...prev, bookings: [], logs: [], messages: [], followups: [], currentIntent: null, activeStep: -1 }));
-                }}
-              >
-                Log Out
+  return (
+    <div className="app-container-native">
+      <div className="phone-screen-native">
+        {/* Session Auth Guard */}
+        {!currentUser ? (
+          <Auth 
+            onLoginSuccess={setCurrentUser} 
+            providers={state.providers} 
+          />
+        ) : (
+          activeApp === 'client' ? (
+            <div style={{ display: 'flex', flexDirection: 'column', height: '100%', width: '100%', overflow: 'hidden' }}>
+              {/* Client Premium Mobile Top Header */}
+              <div className="phone-header">
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, flex: 1 }}>
+                  <div className="avatar-pulse">
+                    <Shield size={16} style={{ color: 'white' }} />
+                  </div>
+                  <div className="phone-header-info">
+                    <h3>KariGhar Client</h3>
+                    <span>{state.isProcessing ? 'Thinking...' : 'Online'}</span>
+                  </div>
+                </div>
+                
+                <div className="phone-header-actions" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <button 
+                    type="button"
+                    className="header-action-btn"
+                    onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+                    title="Toggle Theme"
+                  >
+                    {theme === 'dark' ? <Sun size={14} /> : <Moon size={14} />}
+                  </button>
+                  <button 
+                    type="button"
+                    className="header-action-btn"
+                    onClick={() => setShowSettings(true)}
+                    title="API Settings"
+                  >
+                    <Settings size={14} />
+                  </button>
+                  <button 
+                    type="button"
+                    className="header-action-btn logout-btn"
+                    onClick={handleLogout}
+                    title="Log Out"
+                  >
+                    <LogOut size={14} />
+                  </button>
+                </div>
+              </div>
+
+              {/* Tabs Container */}
+              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', position: 'relative', minHeight: 0, overflow: 'hidden' }}>
+                
+                {/* Chat Tab Panel */}
+                <div className={`tab-panel ${mobileTab === 'chat' ? 'active' : ''}`}>
+                  {/* Chat Area */}
+                  <div className="phone-chat-area">
+                    {chatMessages.map((msg) => (
+                      <React.Fragment key={msg.id}>
+                        {!msg.isBookingCard ? (
+                          <div className={`chat-bubble ${msg.sender}`}>
+                            <div className="log-message">{msg.text}</div>
+                            
+                            {/* Tap-to-Book Quick Catalog */}
+                            {msg.id === 'welcome-1' && (
+                              <div className="catalog-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginTop: 12 }}>
+                                <button type="button" className="prefill-chip" onClick={() => handleSubmit('Mujhe G-13 me AC Repair technician chahiye')} style={{ padding: '8px 4px', fontSize: '0.65rem', textAlign: 'center', margin: 0 }}>
+                                  ❄️ AC Repair (G-13)
+                                </button>
+                                <button type="button" className="prefill-chip" onClick={() => handleSubmit('Urgent plumber needed in F-11 sector')} style={{ padding: '8px 4px', fontSize: '0.65rem', textAlign: 'center', margin: 0 }}>
+                                  💧 Plumbing (F-11)
+                                </button>
+                                <button type="button" className="prefill-chip" onClick={() => handleSubmit('Electrician call for H-12 Islamabad')} style={{ padding: '8px 4px', fontSize: '0.65rem', textAlign: 'center', margin: 0 }}>
+                                  ⚡ Electrician (H-12)
+                                </button>
+                                <button type="button" className="prefill-chip" onClick={() => handleSubmit('Need math home tutor in I-8 sector')} style={{ padding: '8px 4px', fontSize: '0.65rem', textAlign: 'center', margin: 0 }}>
+                                  📚 Home Tutor (I-8)
+                                </button>
+                              </div>
+                            )}
+                            
+                            {/* Interactive Star Feedback Loop */}
+                            {msg.isReviewRequest && !msg.hasBeenReviewed && (
+                              <div className="star-review-row">
+                                {[1, 2, 3, 4, 5].map((star) => (
+                                  <Star 
+                                    key={star} 
+                                    size={20}
+                                    className="review-star active"
+                                    onClick={() => handleRatingClick(star, msg.id)}
+                                  />
+                                ))}
+                              </div>
+                            )}
+
+                            <span className="chat-time">{msg.time}</span>
+                          </div>
+                        ) : (
+                          <div className="phone-booking-card">
+                            <div className="booking-card-header">
+                              <span className="booking-id-badge">{msg.booking?.id}</span>
+                              <span className={`booking-status-badge ${msg.booking?.status}`}>
+                                {msg.booking?.status.replace('_', ' ').toUpperCase()}
+                              </span>
+                            </div>
+                            <div className="booking-card-detail">
+                              <div className="booking-detail-row">
+                                <span className="booking-detail-label">Service:</span>
+                                <span className="booking-detail-val">{msg.booking?.categoryName}</span>
+                              </div>
+                              <div className="booking-detail-row">
+                                <span className="booking-detail-label">Provider:</span>
+                                <span className="booking-detail-val">{msg.booking?.providerName}</span>
+                              </div>
+                              <div className="booking-detail-row">
+                                <span className="booking-detail-label">Time:</span>
+                                <span className="booking-detail-val">{msg.booking?.timeSlot}</span>
+                              </div>
+                              <div className="booking-detail-row">
+                                <span className="booking-detail-label">Rate:</span>
+                                <span className="booking-detail-val">PKR {msg.booking?.price}</span>
+                              </div>
+                            </div>
+                            <div 
+                              className="booking-receipt-action" 
+                              onClick={() => msg.booking && setSelectedBookingForReceipt(msg.booking)}
+                            >
+                              View Booking Receipt
+                            </div>
+                          </div>
+                        )}
+                      </React.Fragment>
+                    ))}
+                    <div ref={chatEndRef} />
+                  </div>
+
+                  {/* Quick Scenarios */}
+                  <div className="phone-scenarios">
+                    <span className="scenarios-title">Quick Test Scenarios</span>
+                    <div className="scenarios-scroll">
+                      {testScenarios.map((scen, idx) => (
+                        <button
+                          key={idx}
+                          className="scenario-chip"
+                          onClick={() => setUserInput(scen.text)}
+                          disabled={state.isProcessing}
+                        >
+                          {scen.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Chat Input */}
+                  <form 
+                    className="phone-input-bar" 
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      handleSubmit(userInput);
+                    }}
+                  >
+                    <button 
+                      type="button" 
+                      className={`voice-mic-btn ${isMicRecording ? 'recording' : ''}`}
+                      onClick={handleStartVoice}
+                      disabled={state.isProcessing || isMicRecording}
+                      title="Speak Roman Urdu Request"
+                    >
+                      <Mic size={16} />
+                    </button>
+
+                    {isMicRecording ? (
+                      <div className="phone-input" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <span style={{ fontSize: '0.7rem', color: 'var(--color-error)' }}>Speaking...</span>
+                        <div className="mic-soundwaves">
+                          <div className="soundwave-bar"></div>
+                          <div className="soundwave-bar"></div>
+                          <div className="soundwave-bar"></div>
+                          <div className="soundwave-bar"></div>
+                        </div>
+                      </div>
+                    ) : (
+                      <input
+                        type="text"
+                        className="phone-input"
+                        placeholder="AC technician in G-13 tomorrow..."
+                        value={userInput}
+                        onChange={(e) => setUserInput(e.target.value)}
+                        disabled={state.isProcessing}
+                      />
+                    )}
+                    
+                    <button type="submit" className="phone-send-btn" disabled={state.isProcessing || !userInput.trim()}>
+                      <Send size={14} />
+                    </button>
+                  </form>
+                </div>
+
+                {/* Map Tab Panel */}
+                <div className={`tab-panel ${mobileTab === 'map' ? 'active' : ''}`}>
+                  <div className="mobile-map-tab-view" style={{ flex: 1, position: 'relative', display: 'flex', flexDirection: 'column', height: '100%', width: '100%' }}>
+                    <div id="leaflet-map-canvas-mobile-client" className="map-canvas-container" style={{ flex: 1, height: '100%', width: '100%' }}></div>
+                    <div style={{ padding: 10, background: 'var(--bg-panel-solid)', borderTop: '1px solid var(--border-light)', fontSize: '0.65rem' }}>
+                      <strong>📍 Live Dispatch Tracking</strong>
+                      <div style={{ color: 'var(--text-secondary)', marginTop: 2 }}>
+                        {state.bookings.length > 0 ? (
+                          `Tracking: ${state.bookings[0].providerName} is ${state.bookings[0].status.replace('_', ' ').toUpperCase()}`
+                        ) : (
+                          'No active booking path mapped. Request an artisan above!'
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Ledger Tab Panel */}
+                <div className={`tab-panel mobile-ledger-tab-view ${mobileTab === 'ledger' ? 'active' : ''}`} style={{ padding: '12px' }}>
+                  <div style={{ fontSize: '0.75rem', fontWeight: 'bold', borderBottom: '1px solid var(--border-light)', paddingBottom: 6 }}>🧾 Booking Ledger</div>
+                  {state.bookings.length === 0 ? (
+                    <div style={{ color: 'var(--text-muted)', fontSize: '0.7rem', textAlign: 'center', margin: '40px 0' }}>
+                      No bookings recorded yet.
+                    </div>
+                  ) : (
+                    state.bookings.map(b => (
+                      <div key={b.id} className="glass-card" style={{ padding: 10, display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 8 }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.7rem', fontWeight: 'bold' }}>
+                          <span>{b.categoryName}</span>
+                          <span className={`booking-status-badge ${b.status}`} style={{ fontSize: '0.55rem' }}>{b.status.replace('_', ' ').toUpperCase()}</span>
+                        </div>
+                        <div style={{ fontSize: '0.65rem', color: 'var(--text-secondary)' }}>
+                          Artisan: {b.providerName} • Rs. {b.price}
+                        </div>
+                        <button 
+                          type="button"
+                          className="booking-receipt-action" 
+                          style={{ padding: '4px', fontSize: '0.6rem', width: '100%', border: 'none', background: 'var(--color-primary)', borderRadius: 4, color: 'white', cursor: 'pointer' }}
+                          onClick={() => setSelectedBookingForReceipt(b)}
+                        >
+                          View Receipt
+                        </button>
+                      </div>
+                    ))
+                  )}
+                </div>
+
+              </div>
+
+              {/* Client Tab Bar */}
+              <div className="phone-bottom-nav">
+                <button 
+                  type="button"
+                  className={`phone-nav-item ${mobileTab === 'chat' ? 'active' : ''}`}
+                  onClick={() => setMobileTab('chat')}
+                >
+                  💬 Chat
+                </button>
+                <button 
+                  type="button"
+                  className={`phone-nav-item ${mobileTab === 'map' ? 'active' : ''}`}
+                  onClick={() => setMobileTab('map')}
+                >
+                  🗺️ Map
+                </button>
+                <button 
+                  type="button"
+                  className={`phone-nav-item ${mobileTab === 'ledger' ? 'active' : ''}`}
+                  onClick={() => setMobileTab('ledger')}
+                >
+                  🧾 Ledger
+                </button>
+              </div>
+            </div>
+          ) : (
+            /* PROVIDER VIEW SIMULATOR */
+            <div style={{ display: 'flex', flexDirection: 'column', height: '100%', width: '100%', overflow: 'hidden' }}>
+              {/* Premium Mobile Header for Provider */}
+              <div className="phone-header">
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, flex: 1 }}>
+                  <div className="avatar-pulse">
+                    <Shield size={16} style={{ color: 'white' }} />
+                  </div>
+                  <div className="phone-header-info">
+                    <h3>KariGhar Partner</h3>
+                    <span>Active</span>
+                  </div>
+                </div>
+                
+                <div className="phone-header-actions" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <button 
+                    type="button"
+                    className="header-action-btn"
+                    onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+                    title="Toggle Theme"
+                  >
+                    {theme === 'dark' ? <Sun size={14} /> : <Moon size={14} />}
+                  </button>
+                  <button 
+                    type="button"
+                    className="header-action-btn"
+                    onClick={() => setShowSettings(true)}
+                    title="API Settings"
+                  >
+                    <Settings size={14} />
+                  </button>
+                  <button 
+                    type="button"
+                    className="header-action-btn logout-btn"
+                    onClick={handleLogout}
+                    title="Log Out"
+                  >
+                    <LogOut size={14} />
+                  </button>
+                </div>
+              </div>
+
+              {/* Tabs Container */}
+              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', position: 'relative', minHeight: 0, overflow: 'hidden' }}>
+                
+                {/* Jobs Tab Panel */}
+                <div className={`tab-panel ${providerMobileTab === 'jobs' ? 'active' : ''}`} style={{ padding: '12px' }}>
+                  <div className="provider-stats-strip">
+                    <div className="stat-strip-box">
+                      <div className="stat-strip-val">
+                        {currentUser?.role === 'provider' 
+                          ? state.providers.find(p => p.id === currentUser.providerId)?.rating || 4.5
+                          : '4.5'
+                        }★
+                      </div>
+                      <div className="stat-strip-label">Rating</div>
+                    </div>
+                    <div className="stat-strip-box">
+                      <div className="stat-strip-val">PKR 14,200</div>
+                      <div className="stat-strip-label">Wallet</div>
+                    </div>
+                  </div>
+
+                  <div className="provider-jobs-title">Assigned Service Bookings</div>
+
+                  {assignedJobs.length === 0 && state.bookings.length > 0 && (
+                    <div className="provider-job-card active-job" style={{ borderStyle: 'dashed' }}>
+                      <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', textAlign: 'center' }}>
+                        No bookings match your provider account phone number.
+                        <br/>
+                        <button 
+                          type="button"
+                          className="scenario-chip" 
+                          style={{ marginTop: 8 }}
+                          onClick={() => {
+                            const activeBk = state.bookings[0];
+                            if (activeBk && currentUser?.providerId) {
+                              setState(prev => ({
+                                ...prev,
+                                bookings: prev.bookings.map(b => b.id === activeBk.id ? { ...b, providerId: currentUser.providerId || '', providerName: currentUser.name } : b)
+                              }));
+                            }
+                          }}
+                        >
+                          Assign Active Booking to Me
+                        </button>
+                      </span>
+                    </div>
+                  )}
+
+                  {assignedJobs.length === 0 && state.bookings.length === 0 && (
+                    <div style={{ color: 'var(--text-muted)', fontSize: '0.7rem', textAlign: 'center', padding: '30px 0' }}>
+                      No service calls assigned currently. Make a client booking request first!
+                    </div>
+                  )}
+
+                  {assignedJobs.map((job) => (
+                    <div key={job.id} className="provider-job-card active-job" style={{ marginBottom: 8 }}>
+                      <div className="job-card-header">
+                        <span className="job-id">{job.id}</span>
+                        <span className={`job-status-pill ${job.status}`}>
+                          {job.status.toUpperCase()}
+                        </span>
+                      </div>
+                      
+                      <div className="job-details">
+                        <div className="job-row">
+                          <span className="job-lbl">Client Name:</span>
+                          <span className="job-val">{job.clientName}</span>
+                        </div>
+                        <div className="job-row">
+                          <span className="job-lbl">Sector:</span>
+                          <span className="job-val">{job.locationSector}</span>
+                        </div>
+                        <div className="job-row">
+                          <span className="job-lbl">Time Slot:</span>
+                          <span className="job-val">{job.timeSlot}</span>
+                        </div>
+                        <div className="job-row">
+                          <span className="job-lbl">Your Payout:</span>
+                          <span className="job-val" style={{ color: 'var(--color-success)', fontWeight: 'bold' }}>
+                            PKR {job.price}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="provider-actions">
+                        {job.status === 'confirmed' && (
+                          <button 
+                            className="prov-btn accept"
+                            onClick={() => handleProviderAction('accept', job.id)}
+                          >
+                            Accept & Go Transit
+                          </button>
+                        )}
+                        {job.status === 'in_progress' && (
+                          <button 
+                            className="prov-btn arrive"
+                            onClick={() => handleProviderAction('arrive', job.id)}
+                          >
+                            Arrived at Location
+                          </button>
+                        )}
+                        {job.status === 'in_progress' && (
+                          <button 
+                            className="prov-btn complete"
+                            onClick={() => handleProviderAction('complete', job.id)}
+                          >
+                            Complete Work & Payout
+                          </button>
+                        )}
+                        {job.status === 'completed' && (
+                          <span style={{ fontSize: '0.65rem', color: 'var(--color-success)', textAlign: 'center', fontWeight: 'bold' }}>
+                            Job Completed Successfully!
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Map Tab Panel */}
+                <div className={`tab-panel ${providerMobileTab === 'map' ? 'active' : ''}`}>
+                  <div className="mobile-map-tab-view" style={{ flex: 1, position: 'relative', display: 'flex', flexDirection: 'column', height: '100%', width: '100%' }}>
+                    <div id="leaflet-map-canvas-mobile-provider" className="map-canvas-container" style={{ flex: 1, height: '100%', width: '100%' }}></div>
+                    <div style={{ padding: 10, background: 'var(--bg-panel-solid)', borderTop: '1px solid var(--border-light)', fontSize: '0.65rem' }}>
+                      <strong>📍 Client Routing Navigation</strong>
+                      <div style={{ color: 'var(--text-secondary)', marginTop: 2 }}>
+                        {assignedJobs.length > 0 ? (
+                          `Active Route to Client ${assignedJobs[0].clientName} in Sector ${assignedJobs[0].locationSector}`
+                        ) : (
+                          'No assigned jobs to route currently.'
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Wallet Tab Panel */}
+                <div className={`tab-panel mobile-earnings-tab-view ${providerMobileTab === 'earnings' ? 'active' : ''}`} style={{ padding: '12px' }}>
+                  <div style={{ fontSize: '0.75rem', fontWeight: 'bold', borderBottom: '1px solid var(--border-light)', paddingBottom: 6 }}>💼 Earnings & Ledger</div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 12 }}>
+                    <div className="stat-strip-box" style={{ padding: 10 }}>
+                      <div className="stat-strip-val" style={{ fontSize: '1rem', color: 'var(--color-secondary)' }}>PKR 14,200</div>
+                      <div className="stat-strip-label" style={{ fontSize: '0.55rem' }}>Wallet Balance</div>
+                    </div>
+                    <div className="stat-strip-box" style={{ padding: 10 }}>
+                      <div className="stat-strip-val" style={{ fontSize: '1rem', color: 'var(--color-warning)' }}>
+                        {currentUser?.role === 'provider' 
+                          ? state.providers.find(p => p.id === currentUser.providerId)?.rating || 4.8
+                          : '4.8'
+                        }★
+                      </div>
+                      <div className="stat-strip-label" style={{ fontSize: '0.55rem' }}>Artisan Rating</div>
+                    </div>
+                  </div>
+                  
+                  <div className="glass-card" style={{ padding: 10, display: 'flex', flexDirection: 'column', gap: 6 }}>
+                    <div style={{ fontSize: '0.7rem', fontWeight: 'bold' }}>Performance Summary</div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.65rem' }}>
+                      <span style={{ color: 'var(--text-secondary)' }}>Completed Jobs:</span>
+                      <span>{currentUser?.role === 'provider' ? state.providers.find(p => p.id === currentUser.providerId)?.completedJobs || 142 : 142} jobs</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.65rem' }}>
+                      <span style={{ color: 'var(--text-secondary)' }}>Acceptance Rate:</span>
+                      <span style={{ color: 'var(--color-success)' }}>98%</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.65rem' }}>
+                      <span style={{ color: 'var(--text-secondary)' }}>Experience:</span>
+                      <span>{currentUser?.role === 'provider' ? state.providers.find(p => p.id === currentUser.providerId)?.experienceYears || 5 : 5} Years</span>
+                    </div>
+                  </div>
+                </div>
+
+              </div>
+
+              {/* Provider Tab Bar */}
+              <div className="phone-bottom-nav">
+                <button 
+                  type="button"
+                  className={`phone-nav-item ${providerMobileTab === 'jobs' ? 'active' : ''}`}
+                  onClick={() => setProviderMobileTab('jobs')}
+                >
+                  📋 Jobs
+                </button>
+                <button 
+                  type="button"
+                  className={`phone-nav-item ${providerMobileTab === 'map' ? 'active' : ''}`}
+                  onClick={() => setProviderMobileTab('map')}
+                >
+                  🗺️ Navigation
+                </button>
+                <button 
+                  type="button"
+                  className={`phone-nav-item ${providerMobileTab === 'earnings' ? 'active' : ''}`}
+                  onClick={() => setProviderMobileTab('earnings')}
+                >
+                  💼 Wallet
+                </button>
+              </div>
+            </div>
+          )
+        )}
+      </div>
+
+      {/* API Settings Modal (as a premium responsive drawer overlay) */}
+      {showSettings && (
+        <div className="settings-drawer-overlay">
+          <div className="settings-drawer glass-panel">
+            <div className="settings-drawer-header">
+              <h4>Gemini API Key</h4>
+              <button type="button" className="close-btn" onClick={() => setShowSettings(false)}>
+                <X size={16} />
               </button>
             </div>
-          )}
-
-          <button 
-            className="tab-btn"
-            onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-            style={{ display: 'flex', alignItems: 'center', gap: 6 }}
-          >
-            {theme === 'dark' ? '☀️ Light UI' : '🌙 Dark UI'}
-          </button>
-
-          <button 
-            className="tab-btn" 
-            onClick={() => setShowSettings(!showSettings)}
-            style={{ display: 'flex', alignItems: 'center', gap: 6 }}
-          >
-            <Settings size={16} />
-            {apiKey ? 'API Key Saved' : 'Configure Gemini API'}
-          </button>
-          
-          {showSettings && (
-            <div className="glass-panel" style={{
-              position: 'absolute', top: 80, right: 24, zIndex: 100, 
-              padding: 16, display: 'flex', flexDirection: 'column', gap: 12,
-              width: 320, background: '#0f172a'
-            }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ fontSize: '0.8rem', fontWeight: 'bold' }}>Gemini Pro/Flash API Key</span>
-                <X size={16} style={{ cursor: 'pointer' }} onClick={() => setShowSettings(false)} />
-              </div>
+            <div className="settings-drawer-body">
+              <label htmlFor="gemini-key-input-field">Gemini Pro/Flash API Key</label>
               <input 
                 type="password" 
                 className="api-key-input" 
                 placeholder="Enter Gemini API Key..." 
                 defaultValue={apiKey}
                 id="gemini-key-input-field"
+                style={{ width: '100%' }}
               />
               <button 
+                type="button"
                 className="booking-receipt-action" 
                 onClick={() => {
                   const val = (document.getElementById('gemini-key-input-field') as HTMLInputElement)?.value || '';
                   handleSaveApiKey(val);
                 }}
               >
-                Save Configuration
+                Save Key
               </button>
-              <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>
-                Leaves key in local storage. Runs extraction using gemini-2.5-flash. Fallbacks to local keyword dictionary if key is empty.
-              </div>
+              <p className="settings-help">
+                Saves key in local storage. Uses Gemini 2.5 Flash for parallel intent parsing and distance scoring; falls back to offline dictionary if empty.
+              </p>
             </div>
-          )}
+          </div>
         </div>
-      </header>
-
-      {/* Main Grid */}
-      <main className="dashboard-grid">
-        
-        {/* PANEL 1: Mobile Phone Simulator */}
-        <section className="phone-simulator-wrapper">
-          <div className="phone-frame">
-            <div className="phone-notch"></div>
-            <div className="phone-status-bar">
-              <span>03:00 AM</span>
-              <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
-                <Activity size={10} className="pulse-status" style={{ color: 'var(--color-success)' }} />
-                <span>LTE</span>
-              </div>
-            </div>
-
-            {/* Developer Bezel Toggle */}
-            <div className="phone-app-toggle">
-              <span style={{ fontSize: '0.55rem', fontWeight: 'bold', textTransform: 'uppercase', color: 'var(--text-muted)' }}>
-                📱 Simulator Mode
-              </span>
-              <div className="phone-app-toggle-btns">
-                <button 
-                  className={`app-toggle-btn ${activeApp === 'client' ? 'active' : ''}`}
-                  onClick={() => setActiveApp('client')}
-                >
-                  Client App
-                </button>
-                <button 
-                  className={`app-toggle-btn ${activeApp === 'provider' ? 'active' : ''}`}
-                  onClick={() => setActiveApp('provider')}
-                >
-                  Provider App
-                </button>
-              </div>
-            </div>
-            
-            <div className="phone-screen">
-              {activeApp === 'client' ? (
-                <div style={{ display: 'flex', flexDirection: 'column', height: '100%', width: '100%', overflow: 'hidden' }}>
-                  <div className="phone-header">
-                    <div className="avatar-pulse">
-                      <Shield size={16} style={{ color: 'white' }} />
-                    </div>
-                    <div className="phone-header-info">
-                      <h3>KariGhar Client</h3>
-                      <span>{state.isProcessing ? 'Thinking...' : 'Online'}</span>
-                    </div>
-                  </div>
-
-                  {/* Tabs Container */}
-                  <div style={{ flex: 1, display: 'flex', flexDirection: 'column', position: 'relative', minHeight: 0, overflow: 'hidden' }}>
-                    
-                    {/* Chat Tab Panel */}
-                    <div style={{ display: mobileTab === 'chat' ? 'flex' : 'none', flexDirection: 'column', height: '100%', width: '100%', flex: 1, minHeight: 0, overflow: 'hidden' }}>
-                      {/* Chat Area */}
-                      <div className="phone-chat-area">
-                        {chatMessages.map((msg) => (
-                          <React.Fragment key={msg.id}>
-                            {!msg.isBookingCard ? (
-                              <div className={`chat-bubble ${msg.sender}`}>
-                                <div className="log-message">{msg.text}</div>
-                                
-                                {/* Tap-to-Book Quick Catalog */}
-                                {msg.id === 'welcome-1' && (
-                                  <div className="catalog-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginTop: 12 }}>
-                                    <button type="button" className="prefill-chip" onClick={() => handleSubmit('Mujhe G-13 me AC Repair technician chahiye')} style={{ padding: '8px 4px', fontSize: '0.65rem', textAlign: 'center', margin: 0 }}>
-                                      ❄️ AC Repair (G-13)
-                                    </button>
-                                    <button type="button" className="prefill-chip" onClick={() => handleSubmit('Urgent plumber needed in F-11 sector')} style={{ padding: '8px 4px', fontSize: '0.65rem', textAlign: 'center', margin: 0 }}>
-                                      💧 Plumbing (F-11)
-                                    </button>
-                                    <button type="button" className="prefill-chip" onClick={() => handleSubmit('Electrician call for H-12 Islamabad')} style={{ padding: '8px 4px', fontSize: '0.65rem', textAlign: 'center', margin: 0 }}>
-                                      ⚡ Electrician (H-12)
-                                    </button>
-                                    <button type="button" className="prefill-chip" onClick={() => handleSubmit('Need math home tutor in I-8 sector')} style={{ padding: '8px 4px', fontSize: '0.65rem', textAlign: 'center', margin: 0 }}>
-                                      📚 Home Tutor (I-8)
-                                    </button>
-                                  </div>
-                                )}
-                                
-                                {/* Interactive Star Feedback Loop */}
-                                {msg.isReviewRequest && !msg.hasBeenReviewed && (
-                                  <div className="star-review-row">
-                                    {[1, 2, 3, 4, 5].map((star) => (
-                                      <Star 
-                                        key={star} 
-                                        size={20}
-                                        className="review-star active"
-                                        onClick={() => handleRatingClick(star, msg.id)}
-                                      />
-                                    ))}
-                                  </div>
-                                )}
-
-                                <span className="chat-time">{msg.time}</span>
-                              </div>
-                            ) : (
-                              <div className="phone-booking-card">
-                                <div className="booking-card-header">
-                                  <span className="booking-id-badge">{msg.booking?.id}</span>
-                                  <span className={`booking-status-badge ${msg.booking?.status}`}>
-                                    {msg.booking?.status.replace('_', ' ').toUpperCase()}
-                                  </span>
-                                </div>
-                                <div className="booking-card-detail">
-                                  <div className="booking-detail-row">
-                                    <span className="booking-detail-label">Service:</span>
-                                    <span className="booking-detail-val">{msg.booking?.categoryName}</span>
-                                  </div>
-                                  <div className="booking-detail-row">
-                                    <span className="booking-detail-label">Provider:</span>
-                                    <span className="booking-detail-val">{msg.booking?.providerName}</span>
-                                  </div>
-                                  <div className="booking-detail-row">
-                                    <span className="booking-detail-label">Time:</span>
-                                    <span className="booking-detail-val">{msg.booking?.timeSlot}</span>
-                                  </div>
-                                  <div className="booking-detail-row">
-                                    <span className="booking-detail-label">Rate:</span>
-                                    <span className="booking-detail-val">PKR {msg.booking?.price}</span>
-                                  </div>
-                                </div>
-                                <div 
-                                  className="booking-receipt-action" 
-                                  onClick={() => msg.booking && setSelectedBookingForReceipt(msg.booking)}
-                                >
-                                  View Booking Receipt
-                                </div>
-                              </div>
-                            )}
-                          </React.Fragment>
-                        ))}
-                        <div ref={chatEndRef} />
-                      </div>
-
-                      {/* Quick Scenarios */}
-                      <div className="phone-scenarios">
-                        <span className="scenarios-title">Quick Test Scenarios</span>
-                        <div className="scenarios-scroll">
-                          {testScenarios.map((scen, idx) => (
-                            <button
-                              key={idx}
-                              className="scenario-chip"
-                              onClick={() => setUserInput(scen.text)}
-                              disabled={state.isProcessing}
-                            >
-                              {scen.label}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-
-                      {/* Chat Input */}
-                      <form 
-                        className="phone-input-bar" 
-                        onSubmit={(e) => {
-                          e.preventDefault();
-                          handleSubmit(userInput);
-                        }}
-                      >
-                        <button 
-                          type="button" 
-                          className={`voice-mic-btn ${isMicRecording ? 'recording' : ''}`}
-                          onClick={handleStartVoice}
-                          disabled={state.isProcessing || isMicRecording}
-                          title="Speak Roman Urdu Request"
-                        >
-                          <Mic size={16} />
-                        </button>
-
-                        {isMicRecording ? (
-                          <div className="phone-input" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                            <span style={{ fontSize: '0.7rem', color: 'var(--color-error)' }}>Speaking...</span>
-                            <div className="mic-soundwaves">
-                              <div className="soundwave-bar"></div>
-                              <div className="soundwave-bar"></div>
-                              <div className="soundwave-bar"></div>
-                              <div className="soundwave-bar"></div>
-                            </div>
-                          </div>
-                        ) : (
-                          <input
-                            type="text"
-                            className="phone-input"
-                            placeholder="AC technician in G-13 tomorrow..."
-                            value={userInput}
-                            onChange={(e) => setUserInput(e.target.value)}
-                            disabled={state.isProcessing}
-                          />
-                        )}
-                        
-                        <button type="submit" className="phone-send-btn" disabled={state.isProcessing || !userInput.trim()}>
-                          <Send size={14} />
-                        </button>
-                      </form>
-                    </div>
-
-                    {/* Map Tab Panel */}
-                    <div style={{ display: mobileTab === 'map' ? 'flex' : 'none', flexDirection: 'column', height: '100%', width: '100%', flex: 1, minHeight: 0 }}>
-                      <div className="mobile-map-tab-view" style={{ flex: 1, position: 'relative', display: 'flex', flexDirection: 'column', height: '100%', width: '100%' }}>
-                        <div id="leaflet-map-canvas-mobile-client" className="map-canvas-container" style={{ flex: 1, height: '100%', width: '100%' }}></div>
-                        <div style={{ padding: 10, background: 'var(--bg-panel-solid)', borderTop: '1px solid var(--border-light)', fontSize: '0.65rem' }}>
-                          <strong>📍 Live Dispatch Tracking</strong>
-                          <div style={{ color: 'var(--text-secondary)', marginTop: 2 }}>
-                            {state.bookings.length > 0 ? (
-                              `Tracking: ${state.bookings[0].providerName} is ${state.bookings[0].status.replace('_', ' ').toUpperCase()}`
-                            ) : (
-                              'No active booking path mapped. Request an artisan above!'
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Ledger Tab Panel */}
-                    <div style={{ display: mobileTab === 'ledger' ? 'flex' : 'none', flexDirection: 'column', height: '100%', width: '100%', flex: 1, overflowY: 'auto', padding: 12 }}>
-                      <div style={{ fontSize: '0.75rem', fontWeight: 'bold', borderBottom: '1px solid var(--border-light)', paddingBottom: 6 }}>🧾 Booking Ledger</div>
-                      {state.bookings.length === 0 ? (
-                        <div style={{ color: 'var(--text-muted)', fontSize: '0.7rem', textAlign: 'center', margin: '40px 0' }}>
-                          No bookings recorded yet.
-                        </div>
-                      ) : (
-                        state.bookings.map(b => (
-                          <div key={b.id} className="glass-card" style={{ padding: 10, display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 8 }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.7rem', fontWeight: 'bold' }}>
-                              <span>{b.categoryName}</span>
-                              <span className={`booking-status-badge ${b.status}`} style={{ fontSize: '0.55rem' }}>{b.status.replace('_', ' ').toUpperCase()}</span>
-                            </div>
-                            <div style={{ fontSize: '0.65rem', color: 'var(--text-secondary)' }}>
-                              Artisan: {b.providerName} • Rs. {b.price}
-                            </div>
-                            <button 
-                              type="button"
-                              className="booking-receipt-action" 
-                              style={{ padding: '4px', fontSize: '0.6rem', width: '100%', border: 'none', background: 'var(--color-primary)', borderRadius: 4, color: 'white', cursor: 'pointer' }}
-                              onClick={() => setSelectedBookingForReceipt(b)}
-                            >
-                              View Receipt
-                            </button>
-                          </div>
-                        ))
-                      )}
-                    </div>
-
-                  </div>
-
-                  {/* Client Tab Bar */}
-                  <div className="phone-bottom-nav">
-                    <button 
-                      type="button"
-                      className={`phone-nav-item ${mobileTab === 'chat' ? 'active' : ''}`}
-                      onClick={() => setMobileTab('chat')}
-                    >
-                      💬 Chat
-                    </button>
-                    <button 
-                      type="button"
-                      className={`phone-nav-item ${mobileTab === 'map' ? 'active' : ''}`}
-                      onClick={() => setMobileTab('map')}
-                    >
-                      🗺️ Map
-                    </button>
-                    <button 
-                      type="button"
-                      className={`phone-nav-item ${mobileTab === 'ledger' ? 'active' : ''}`}
-                      onClick={() => setMobileTab('ledger')}
-                    >
-                      🧾 Ledger
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                /* PROVIDER VIEW SIMULATOR */
-                <div style={{ display: 'flex', flexDirection: 'column', height: '100%', width: '100%', overflow: 'hidden' }}>
-                  <div className="provider-dashboard-view" style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', padding: 0 }}>
-                    <div className="provider-dash-header" style={{ padding: 12 }}>
-                      <h4>KariGhar Partner</h4>
-                      <span className="provider-status-tag">Active</span>
-                    </div>
-
-                    {/* Tabs Container */}
-                    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', position: 'relative', minHeight: 0, overflow: 'hidden' }}>
-                      
-                      {/* Jobs Tab Panel */}
-                      <div style={{ display: providerMobileTab === 'jobs' ? 'flex' : 'none', flexDirection: 'column', height: '100%', width: '100%', flex: 1, overflowY: 'auto', padding: 12 }}>
-                        <div className="provider-stats-strip">
-                          <div className="stat-strip-box">
-                            <div className="stat-strip-val">
-                              {currentUser?.role === 'provider' 
-                                ? state.providers.find(p => p.id === currentUser.providerId)?.rating || 4.5
-                                : '4.5'
-                              }★
-                            </div>
-                            <div className="stat-strip-label">Rating</div>
-                          </div>
-                          <div className="stat-strip-box">
-                            <div className="stat-strip-val">PKR 14,200</div>
-                            <div className="stat-strip-label">Wallet</div>
-                          </div>
-                        </div>
-
-                        <div className="provider-jobs-title">Assigned Service Bookings</div>
-
-                        {assignedJobs.length === 0 && state.bookings.length > 0 && (
-                          <div className="provider-job-card active-job" style={{ borderStyle: 'dashed' }}>
-                            <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', textAlign: 'center' }}>
-                              No bookings match your provider account phone number.
-                              <br/>
-                              <button 
-                                type="button"
-                                className="scenario-chip" 
-                                style={{ marginTop: 8 }}
-                                onClick={() => {
-                                  const activeBk = state.bookings[0];
-                                  if (activeBk && currentUser?.providerId) {
-                                    setState(prev => ({
-                                      ...prev,
-                                      bookings: prev.bookings.map(b => b.id === activeBk.id ? { ...b, providerId: currentUser.providerId || '', providerName: currentUser.name } : b)
-                                    }));
-                                  }
-                                }}
-                              >
-                                Assign Active Booking to Me
-                              </button>
-                            </span>
-                          </div>
-                        )}
-
-                        {assignedJobs.length === 0 && state.bookings.length === 0 && (
-                          <div style={{ color: 'var(--text-muted)', fontSize: '0.7rem', textAlign: 'center', padding: '30px 0' }}>
-                            No service calls assigned currently. Make a client booking request first!
-                          </div>
-                        )}
-
-                        {assignedJobs.map((job) => (
-                          <div key={job.id} className="provider-job-card active-job" style={{ marginBottom: 8 }}>
-                            <div className="job-card-header">
-                              <span className="job-id">{job.id}</span>
-                              <span className={`job-status-pill ${job.status}`}>
-                                {job.status.toUpperCase()}
-                              </span>
-                            </div>
-                            
-                            <div className="job-details">
-                              <div className="job-row">
-                                <span className="job-lbl">Client Name:</span>
-                                <span className="job-val">{job.clientName}</span>
-                              </div>
-                              <div className="job-row">
-                                <span className="job-lbl">Sector:</span>
-                                <span className="job-val">{job.locationSector}</span>
-                              </div>
-                              <div className="job-row">
-                                <span className="job-lbl">Time Slot:</span>
-                                <span className="job-val">{job.timeSlot}</span>
-                              </div>
-                              <div className="job-row">
-                                <span className="job-lbl">Your Payout:</span>
-                                <span className="job-val" style={{ color: 'var(--color-success)', fontWeight: 'bold' }}>
-                                  PKR {job.price}
-                                </span>
-                              </div>
-                            </div>
-
-                            <div className="provider-actions">
-                              {job.status === 'confirmed' && (
-                                <button 
-                                  className="prov-btn accept"
-                                  onClick={() => handleProviderAction('accept', job.id)}
-                                >
-                                  Accept & Go Transit
-                                </button>
-                              )}
-                              {job.status === 'in_progress' && (
-                                <button 
-                                  className="prov-btn arrive"
-                                  onClick={() => handleProviderAction('arrive', job.id)}
-                                >
-                                  Arrived at Location
-                                </button>
-                              )}
-                              {job.status === 'in_progress' && (
-                                <button 
-                                  className="prov-btn complete"
-                                  onClick={() => handleProviderAction('complete', job.id)}
-                                >
-                                  Complete Work & Payout
-                                </button>
-                              )}
-                              {job.status === 'completed' && (
-                                <span style={{ fontSize: '0.65rem', color: 'var(--color-success)', textAlign: 'center', fontWeight: 'bold' }}>
-                                  Job Completed Successfully!
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-
-                      {/* Map Tab Panel */}
-                      <div style={{ display: providerMobileTab === 'map' ? 'flex' : 'none', flexDirection: 'column', height: '100%', width: '100%', flex: 1, minHeight: 0 }}>
-                        <div className="mobile-map-tab-view" style={{ flex: 1, position: 'relative', display: 'flex', flexDirection: 'column', height: '100%', width: '100%' }}>
-                          <div id="leaflet-map-canvas-mobile-provider" className="map-canvas-container" style={{ flex: 1, height: '100%', width: '100%' }}></div>
-                          <div style={{ padding: 10, background: 'var(--bg-panel-solid)', borderTop: '1px solid var(--border-light)', fontSize: '0.65rem' }}>
-                            <strong>📍 Client Routing Navigation</strong>
-                            <div style={{ color: 'var(--text-secondary)', marginTop: 2 }}>
-                              {assignedJobs.length > 0 ? (
-                                `Active Route to Client ${assignedJobs[0].clientName} in Sector ${assignedJobs[0].locationSector}`
-                              ) : (
-                                'No assigned jobs to route currently.'
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Wallet Tab Panel */}
-                      <div style={{ display: providerMobileTab === 'earnings' ? 'flex' : 'none', flexDirection: 'column', height: '100%', width: '100%', flex: 1, overflowY: 'auto', padding: 12 }}>
-                        <div style={{ fontSize: '0.75rem', fontWeight: 'bold', borderBottom: '1px solid var(--border-light)', paddingBottom: 6 }}>💼 Earnings & Ledger</div>
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 12 }}>
-                          <div className="stat-strip-box" style={{ padding: 10 }}>
-                            <div className="stat-strip-val" style={{ fontSize: '1rem', color: 'var(--color-secondary)' }}>PKR 14,200</div>
-                            <div className="stat-strip-label" style={{ fontSize: '0.55rem' }}>Wallet Balance</div>
-                          </div>
-                          <div className="stat-strip-box" style={{ padding: 10 }}>
-                            <div className="stat-strip-val" style={{ fontSize: '1rem', color: 'var(--color-warning)' }}>
-                              {currentUser?.role === 'provider' 
-                                ? state.providers.find(p => p.id === currentUser.providerId)?.rating || 4.8
-                                : '4.8'
-                              }★
-                            </div>
-                            <div className="stat-strip-label" style={{ fontSize: '0.55rem' }}>Artisan Rating</div>
-                          </div>
-                        </div>
-                        
-                        <div className="glass-card" style={{ padding: 10, display: 'flex', flexDirection: 'column', gap: 6 }}>
-                          <div style={{ fontSize: '0.7rem', fontWeight: 'bold' }}>Performance Summary</div>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.65rem' }}>
-                            <span style={{ color: 'var(--text-secondary)' }}>Completed Jobs:</span>
-                            <span>{currentUser?.role === 'provider' ? state.providers.find(p => p.id === currentUser.providerId)?.completedJobs || 142 : 142} jobs</span>
-                          </div>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.65rem' }}>
-                            <span style={{ color: 'var(--text-secondary)' }}>Acceptance Rate:</span>
-                            <span style={{ color: 'var(--color-success)' }}>98%</span>
-                          </div>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.65rem' }}>
-                            <span style={{ color: 'var(--text-secondary)' }}>Experience:</span>
-                            <span>{currentUser?.role === 'provider' ? state.providers.find(p => p.id === currentUser.providerId)?.experienceYears || 5 : 5} Years</span>
-                          </div>
-                        </div>
-                      </div>
-
-                    </div>
-
-                    {/* Provider Tab Bar */}
-                    <div className="phone-bottom-nav">
-                      <button 
-                        type="button"
-                        className={`phone-nav-item ${providerMobileTab === 'jobs' ? 'active' : ''}`}
-                        onClick={() => setProviderMobileTab('jobs')}
-                      >
-                        📋 Jobs
-                      </button>
-                      <button 
-                        type="button"
-                        className={`phone-nav-item ${providerMobileTab === 'map' ? 'active' : ''}`}
-                        onClick={() => setProviderMobileTab('map')}
-                      >
-                        🗺️ Navigation
-                      </button>
-                      <button 
-                        type="button"
-                        className={`phone-nav-item ${providerMobileTab === 'earnings' ? 'active' : ''}`}
-                        onClick={() => setProviderMobileTab('earnings')}
-                      >
-                        💼 Wallet
-                      </button>
-                    </div>
-
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        </section>
-
-        {/* CENTER PANEL: Geospatial routing map & registry database */}
-        <section className="center-dispatch-panel">
-          <div className="map-visualization-view glass-panel">
-            <div className="dispatch-header">
-              <h3>🗺️ Live Geospatial Dispatch & Routing</h3>
-              <div className="dispatch-meta">
-                <span className="live-pill"></span> Islamabad Grid
-              </div>
-            </div>
-            <div id="leaflet-map-canvas" className="map-canvas-container"></div>
-          </div>
-
-          <div className="provider-registry-section glass-panel">
-            <div className="section-header">
-              <h4>👥 Active Artisan Registry (Sectors)</h4>
-              <span className="badge-count">{state.providers.length} registered</span>
-            </div>
-            <div className="providers-grid-row">
-              {state.providers.map((p) => {
-                const isCatMatched = state.currentIntent?.serviceCategory === p.category;
-                const activeBooking = state.bookings[0];
-                const isSelected = activeBooking && activeBooking.providerId === p.id;
-                return (
-                  <div 
-                    key={p.id} 
-                    className={`provider-card-compact ${isSelected ? 'selected' : ''} ${isCatMatched ? 'matched' : ''}`}
-                  >
-                    <div className="prov-avatar-badge">{p.avatar}</div>
-                    <div className="prov-info">
-                      <span className="prov-name">{p.name}</span>
-                      <span className="prov-category">{p.categoryName} • {p.locationSector}</span>
-                      <span className="prov-rating">★ {p.rating} • Rs.{p.priceRate}</span>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        </section>
-
-        {/* RIGHT PANEL: AI Dispatch Control & System Ledger */}
-        <section className="control-tower-wrapper">
-          {/* Thread Monitor */}
-          <div className="control-card glass-panel thread-monitor-card">
-            <div className="card-header">
-              <h4>🧠 Active Agent Threads (Multi-Threaded Pipeline)</h4>
-            </div>
-            <div className="thread-list">
-              {[
-                { name: 'Thread #1: Coordinator Engine', status: state.isProcessing && state.activeStep === 0 ? 'running' : state.activeStep > 0 ? 'idle' : 'inactive', role: 'Main Thread orchestrator' },
-                { name: 'Thread #2: NLP Parsing Engine', status: state.isProcessing && state.activeStep === 1 ? 'running' : state.activeStep > 1 ? 'idle' : 'inactive', role: 'NLU intent mapping' },
-                { name: 'Thread #3: Geospatial Web-Worker', status: state.isProcessing && state.activeStep === 3 ? 'running' : state.activeStep > 3 ? 'idle' : 'inactive', role: 'Parallel distance scoring' },
-                { name: 'Thread #4: Execution Engine', status: state.isProcessing && state.activeStep === 4 ? 'running' : state.activeStep > 4 ? 'idle' : 'inactive', role: 'Db ledger write' },
-                { name: 'Thread #5: Follow-up Cron Worker', status: state.followups.some(f => f.status === 'pending') ? 'running' : state.followups.length > 0 ? 'idle' : 'inactive', role: 'Notification loops' },
-              ].map((th, i) => (
-                <div key={i} className={`thread-item ${th.status}`}>
-                  <div className="thread-status-dot"></div>
-                  <div className="thread-details">
-                    <span className="thread-name">{th.name}</span>
-                    <span className="thread-role">{th.role}</span>
-                  </div>
-                  <span className={`thread-badge ${th.status}`}>{th.status.toUpperCase()}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* AI Thought Stream (Reasoning Logs) */}
-          <div className="control-card glass-panel logs-stream-card">
-            <div className="card-header">
-              <h4>📝 AI Thought Stream & Logs</h4>
-            </div>
-            <div className="log-monitor">
-              {state.logs.length === 0 ? (
-                <div className="empty-logs-msg" style={{ padding: '40px 0', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.8rem' }}>
-                  Waiting for service request intent...
-                </div>
-              ) : (
-                state.logs.map((log) => (
-                  <div key={log.id} className={`log-entry ${log.type}`}>
-                    <div className="log-header">
-                      <span className="log-role">{log.role.toUpperCase().replace('_', ' ')}</span>
-                      {log.threadId && <span className="log-thread-tag">{log.threadId}</span>}
-                      <span className="log-time">{log.timestamp}</span>
-                    </div>
-                    <div className="log-message">{log.message}</div>
-                  </div>
-                ))
-              )}
-              <div ref={logsEndRef} />
-            </div>
-          </div>
-
-          {/* Scheduled Automated Reminders */}
-          <div className="control-card glass-panel followups-card">
-            <div className="card-header">
-              <h4>⏰ Automated Follow-up Trigger Queue</h4>
-            </div>
-            <div className="followups-list-scroll">
-              {state.followups.length === 0 ? (
-                <div className="empty-logs-msg" style={{ padding: '20px 0', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.8rem' }}>
-                  Scheduler queue is empty.
-                </div>
-              ) : (
-                state.followups.map((task) => {
-                  const now = Date.now();
-                  const remainingSeconds = Math.max(0, Math.round((task.triggerTime - now) / 1000));
-                  return (
-                    <div key={task.id} className={`followup-queue-card glass-card ${task.status}`}>
-                      <div className="queue-card-header">
-                        <span className="queue-tag">{task.type.replace('_', ' ')}</span>
-                        <span className={`queue-status ${task.status}`}>
-                          {task.status === 'sent' ? 'DISPATCHED' : `PENDING (${remainingSeconds}s)`}
-                        </span>
-                      </div>
-                      <div className="queue-card-msg">{task.message}</div>
-                    </div>
-                  );
-                })
-              )}
-            </div>
-          </div>
-        </section>
-
-      </main>
+      )}
 
       {/* Booking Receipt PDF/Card Modal */}
       {selectedBookingForReceipt && (
@@ -1229,7 +1102,7 @@ export default function App() {
             <div className="receipt-header">
               <h2>KariGhar Services</h2>
               <p>Virtual Booking Receipt & Ledger</p>
-              <button className="receipt-close-btn" onClick={() => setSelectedBookingForReceipt(null)}>
+              <button type="button" className="receipt-close-btn" onClick={() => setSelectedBookingForReceipt(null)}>
                 <X size={14} />
               </button>
             </div>
